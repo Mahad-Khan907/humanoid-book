@@ -1,15 +1,16 @@
-const { betterAuth } = require('better-auth');
 const { Pool } = require('pg');
 
 let authInstance = null;
 
-function getAuth(originUrl) {
+async function getAuth(originUrl) {
   if (!authInstance) {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
-      console.error('CRITICAL: DATABASE_URL is missing in environment variables!');
       throw new Error('DATABASE_URL environment variable is missing.');
     }
+
+    // Dynamic import because better-auth is pure ESM on Node 20+
+    const { betterAuth } = await import('better-auth');
 
     const pool = new Pool({
       connectionString,
@@ -58,18 +59,8 @@ module.exports = async (req, res) => {
     return res.status(200).end();
   }
 
-  // Diagnostic health endpoint: /api/auth/diagnostic
-  if (req.url && req.url.includes('/diagnostic')) {
-    return res.status(200).json({
-      status: 'ok',
-      hasDatabaseUrl: !!process.env.DATABASE_URL,
-      hasSecret: !!process.env.BETTER_AUTH_SECRET,
-      nodeVersion: process.version
-    });
-  }
-
   try {
-    const auth = getAuth(origin);
+    const auth = await getAuth(origin);
 
     const protocol = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers['x-forwarded-host'] || req.headers.host || 'book-bymahad.vercel.app';
@@ -97,9 +88,6 @@ module.exports = async (req, res) => {
     return res.send(responseText);
   } catch (error) {
     console.error('Better-Auth Vercel error:', error);
-    return res.status(500).json({
-      error: error.message || 'Authentication service error',
-      hint: !process.env.DATABASE_URL ? 'Please add DATABASE_URL in Vercel Settings -> Environment Variables' : undefined
-    });
+    return res.status(500).json({ error: error.message || 'Authentication service error' });
   }
 };
