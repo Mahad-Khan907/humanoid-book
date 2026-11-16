@@ -3,7 +3,7 @@ const { Pool } = require('pg');
 
 let authInstance = null;
 
-function getAuth() {
+function getAuth(originUrl) {
   if (!authInstance) {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
@@ -14,9 +14,20 @@ function getAuth() {
       connectionString,
     });
 
+    const trustedOrigins = [
+      'https://book-bymahad.vercel.app',
+      'http://localhost:3000',
+      'http://localhost:3002'
+    ];
+    if (originUrl && !trustedOrigins.includes(originUrl)) {
+      trustedOrigins.push(originUrl);
+    }
+
     authInstance = betterAuth({
       database: pool,
+      baseURL: process.env.BETTER_AUTH_URL || 'https://book-bymahad.vercel.app',
       secret: process.env.BETTER_AUTH_SECRET || 'iFoWEQS4bfEeQBjiiPDVSvcfvqMIcIeq',
+      trustedOrigins: trustedOrigins,
       emailAndPassword: {
         enabled: true,
       },
@@ -33,8 +44,9 @@ function getAuth() {
 
 module.exports = async (req, res) => {
   // CORS Headers
+  const origin = req.headers.origin || 'https://book-bymahad.vercel.app';
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
     'Access-Control-Allow-Headers',
@@ -46,11 +58,10 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const auth = getAuth();
+    const auth = getAuth(origin);
 
-    // Construct Web Standard Request from Node/Vercel req
     const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost';
+    const host = req.headers['x-forwarded-host'] || req.headers.host || 'book-bymahad.vercel.app';
     const url = new URL(req.url, `${protocol}://${host}`);
 
     let body = undefined;
