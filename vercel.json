@@ -3,7 +3,7 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/api/auth/:match*",
+      "source": "/api/auth/:path*",
       "destination": "/api/auth/[...all].js"
     },
     {
