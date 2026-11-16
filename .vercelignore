@@ -1,0 +1,8 @@
+backend/
+rag_backend/
+.git/
+.gemini/
+.specify/
+history/
+specs/
+output.txt

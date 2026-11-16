@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import styles from './styles.module.css';
 import { useHistory } from '@docusaurus/router';
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import { AuthContext } from '../../lib/better-auth-client';
 
 const ChatWidget = ({ selectedText, clearSelectedText }) => {
@@ -10,8 +11,13 @@ const ChatWidget = ({ selectedText, clearSelectedText }) => {
   const messagesEndRef = useRef(null);
   const history = useHistory();
   const authClient = useContext(AuthContext);
+  const { siteConfig } = useDocusaurusContext();
 
-  // If authClient is not ready, we can't get session. Return null or a disabled state.
+  const ragBackendURL =
+    (siteConfig.customFields?.ragBackendURL as string) ||
+    'http://localhost:7860';
+
+  // If authClient is not ready, return null
   if (!authClient) {
     return null; 
   }
@@ -46,37 +52,59 @@ const ChatWidget = ({ selectedText, clearSelectedText }) => {
     const userMsg = { text: textToSend, sender: 'user' };
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
-    clearSelectedText(); // Clear the "Ask AI" bubble after sending
+    clearSelectedText();
 
-    setMessages(prev => [...prev, { text: '...', sender: 'bot', isTyping: true }]);
+    setMessages(prev => [...prev, { text: 'Thinking...', sender: 'bot', isTyping: true }]);
 
     try {
-      const response = await fetch('https://my-backend-ai-book.up.railway.app/ask', {
+      const endpoint = `${ragBackendURL.replace(/\/$/, '')}/ask`;
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: textToSend }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Server error (${response.status})`);
+      }
+
       const data = await response.json();
-      setMessages(prev => prev.filter(m => !m.isTyping).concat({ text: data.reply, sender: 'bot' }));
+      const reply = data.reply || "No response received.";
+      setMessages(prev => prev.filter(m => !m.isTyping).concat({ text: reply, sender: 'bot' }));
     } catch (error) {
-      setMessages(prev => prev.filter(m => !m.isTyping).concat({ text: 'Error connecting to AI.', sender: 'bot' }));
+      const errMsg = error.message.includes('fetch')
+        ? `Unable to connect to AI server at ${ragBackendURL}. Please ensure the backend is running.`
+        : `AI Error: ${error.message}`;
+      setMessages(prev => prev.filter(m => !m.isTyping).concat({ text: errMsg, sender: 'bot' }));
     }
   };
 
   return (
     <div className={styles.chatContainer}>
-      <div className={styles.chatIcon} onClick={toggleChat}>💬</div>
+      <div className={styles.chatIcon} onClick={toggleChat} title="Chat with AI Assistant">💬</div>
       
       {isOpen && session && (
         <div className={styles.chatWindow}>
           <div className={styles.chatHeader}>
-            <span>AI Assistant</span>
-            <button onClick={toggleChat}>×</button>
+            <span>🤖 AI Textbook Assistant</span>
+            <button onClick={toggleChat} aria-label="Close chat">×</button>
           </div>
 
           <div className={styles.chatMessages}>
+            {messages.length === 0 && (
+              <div style={{ padding: '1rem', color: '#888', textAlign: 'center', fontSize: '0.9rem' }}>
+                👋 Ask me anything about the Physical AI & Humanoid Robotics book!
+              </div>
+            )}
             {messages.map((msg, i) => (
-              <div key={i} className={`${styles.message} ${styles[msg.sender]}`}>{msg.text}</div>
+              <div 
+                key={i} 
+                className={`${styles.message} ${styles[msg.sender]}`}
+                style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+              >
+                {msg.text}
+              </div>
             ))}
             <div ref={messagesEndRef} />
           </div>
@@ -97,7 +125,7 @@ const ChatWidget = ({ selectedText, clearSelectedText }) => {
               value={inputValue} 
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Type here..." 
+              placeholder="Ask about ROS 2, Isaac, VLA..." 
             />
             <button onClick={() => handleSendMessage()}>Send</button>
           </div>

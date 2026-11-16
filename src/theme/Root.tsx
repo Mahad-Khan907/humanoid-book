@@ -4,7 +4,7 @@ import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import { createAuthClientInstance, AuthContext } from '../lib/better-auth-client';
 import ChatWidget from '../components/ChatWidget';
 
-function Root({ children }: PropsWithChildren): JSX.Element {
+function Root({ children }: PropsWithChildren): React.JSX.Element {
   const { siteConfig } = useDocusaurusContext();
   const { authBackendURL } = siteConfig.customFields as { authBackendURL: string };
 

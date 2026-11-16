@@ -1,5 +1,6 @@
 # Dependencies
 /node_modules
+backend/auth_server/node_modules
 
 # Production
 /build
@@ -7,6 +8,8 @@
 # Generated files
 .docusaurus
 .cache-loader
+__pycache__
+*.pyc
 
 # Misc
 .DS_Store
@@ -18,8 +21,12 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-rag_backend/.env
 
+# Secrets & Environment
 .env
+*.env
+rag_backend/.env
+src/.env
+backend/auth_server/.env
+backend/auth_server/src/.env
 env
-

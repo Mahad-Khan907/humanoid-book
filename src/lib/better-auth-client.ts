@@ -1,8 +1,7 @@
-import { createAuthClient, AuthClient } from "better-auth/react";
+import { createAuthClient } from "better-auth/react";
 import { createContext } from 'react';
 
-// We can't initialize the client here because we don't have access to the
-// Docusaurus context. Instead, we'll create the client in a component.
+export type AuthClientType = ReturnType<typeof createAuthClient>;
 
 // Export a function to create a client instance.
 export function createAuthClientInstance(baseURL: string) {
@@ -19,4 +18,4 @@ export function createAuthClientInstance(baseURL: string) {
 
 // Export a context to hold the client instance.
 // We'll provide the value in Root.tsx.
-export const AuthContext = createContext<AuthClient | null>(null);
+export const AuthContext = createContext<any>(null);
