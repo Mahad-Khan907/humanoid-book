@@ -7,6 +7,7 @@ function getAuth(originUrl) {
   if (!authInstance) {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
+      console.error('CRITICAL: DATABASE_URL is missing in environment variables!');
       throw new Error('DATABASE_URL environment variable is missing.');
     }
 
@@ -57,6 +58,16 @@ module.exports = async (req, res) => {
     return res.status(200).end();
   }
 
+  // Diagnostic health endpoint: /api/auth/diagnostic
+  if (req.url && req.url.includes('/diagnostic')) {
+    return res.status(200).json({
+      status: 'ok',
+      hasDatabaseUrl: !!process.env.DATABASE_URL,
+      hasSecret: !!process.env.BETTER_AUTH_SECRET,
+      nodeVersion: process.version
+    });
+  }
+
   try {
     const auth = getAuth(origin);
 
@@ -86,6 +97,9 @@ module.exports = async (req, res) => {
     return res.send(responseText);
   } catch (error) {
     console.error('Better-Auth Vercel error:', error);
-    return res.status(500).json({ error: error.message || 'Authentication service error' });
+    return res.status(500).json({
+      error: error.message || 'Authentication service error',
+      hint: !process.env.DATABASE_URL ? 'Please add DATABASE_URL in Vercel Settings -> Environment Variables' : undefined
+    });
   }
 };
