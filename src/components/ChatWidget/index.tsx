@@ -13,9 +13,8 @@ const ChatWidget = ({ selectedText, clearSelectedText }) => {
   const authClient = useContext(AuthContext);
   const { siteConfig } = useDocusaurusContext();
 
-  const ragBackendURL =
-    (siteConfig.customFields?.ragBackendURL as string) ||
-    'http://localhost:7860';
+  // If deployed on Vercel or same-origin, default to relative '/api/ask' or configured backend URL
+  const ragBackendURL = (siteConfig.customFields?.ragBackendURL as string) || '';
 
   // If authClient is not ready, return null
   if (!authClient) {
@@ -57,7 +56,11 @@ const ChatWidget = ({ selectedText, clearSelectedText }) => {
     setMessages(prev => [...prev, { text: 'Thinking...', sender: 'bot', isTyping: true }]);
 
     try {
-      const endpoint = `${ragBackendURL.replace(/\/$/, '')}/ask`;
+      // If ragBackendURL is configured and starts with http, use it, otherwise use relative '/api/ask'
+      const endpoint = ragBackendURL && ragBackendURL.startsWith('http')
+        ? `${ragBackendURL.replace(/\/$/, '')}/ask`
+        : '/api/ask';
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -73,9 +76,7 @@ const ChatWidget = ({ selectedText, clearSelectedText }) => {
       const reply = data.reply || "No response received.";
       setMessages(prev => prev.filter(m => !m.isTyping).concat({ text: reply, sender: 'bot' }));
     } catch (error) {
-      const errMsg = error.message.includes('fetch')
-        ? `Unable to connect to AI server at ${ragBackendURL}. Please ensure the backend is running.`
-        : `AI Error: ${error.message}`;
+      const errMsg = `AI Error: ${error.message}`;
       setMessages(prev => prev.filter(m => !m.isTyping).concat({ text: errMsg, sender: 'bot' }));
     }
   };

@@ -15,10 +15,10 @@ const config: Config = {
   projectName: "physical-ai-humanoid-robotics",
 
   customFields: {
-    // Auth backend URL (Better-Auth server)
-    authBackendURL: process.env.AUTH_BACKEND_URL || 'http://localhost:3001',
-    // RAG AI backend URL (FastAPI server - port 7860 default matching Hugging Face Spaces & local env)
-    ragBackendURL: process.env.RAG_BACKEND_URL || 'http://localhost:7860',
+    // Auth backend URL: defaults to empty string on Vercel (same-origin /api/auth) or localhost for dev
+    authBackendURL: process.env.AUTH_BACKEND_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001'),
+    // RAG AI backend URL: defaults to empty string on Vercel (same-origin /api/ask) or localhost for dev
+    ragBackendURL: process.env.RAG_BACKEND_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:7860'),
   },
 
   onBrokenLinks: "warn",
